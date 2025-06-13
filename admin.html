@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard</title>
+    <link rel="stylesheet" href="admin.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- Add auth protection -->
+    <script type="module" src="auth.js"></script>
+</head>
+<body>
+    <div class="dashboard">
+        <header>
+            <div class="user-info">
+                <button class="menu-toggle" id="menuToggle">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <span id="adminName">Admin</span>
+                <button id="logoutBtn">Logout</button>
+            </div>
+        </header>
+        <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+        <nav class="sidebar">
+         
+            <button class="nav-btn active" data-section="createUser">
+                <i class="fas fa-user-plus"></i> Create User
+            </button>
+            <button class="nav-btn" data-section="workAssign">
+                <i class="fas fa-tasks"></i> Work Assign
+            </button>
+            <button class="nav-btn" data-section="workProgress">
+                <i class="fas fa-chart-line"></i> Work Progress
+            </button>
+            <button class="nav-btn" data-section="visualization">
+                <i class="fas fa-chart-bar"></i> Visualization
+            </button>
+            <div class="sidebar-header">
+                <button id="themeToggle" class="theme-toggle">
+                    <i class="fas fa-moon"></i>
+                </button>
+            </div>
+        </nav>
+
+        <main class="content">
+            <!-- Create User Section -->
+            <section id="createUser" class="section active">
+                <h2>Create User</h2>
+                <form id="createUserForm">
+                    <div class="form-group">
+                        <label for="userName">Name:</label>
+                        <input type="text" id="userName" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="userPhone">Phone:</label>
+                        <input type="tel" id="userPhone" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="userId">Email:</label>
+                        <input type="email" id="userId" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="userPassword">Password:</label>
+                        <input type="password" id="userPassword" required>
+                    </div>
+                    <button type="submit" class="submit-btn">Create User</button>
+                </form>
+
+                <div class="users-list">
+                    <h3>Existing Users</h3>
+                    <div class="search-container">
+                        <i class="fas fa-search search-icon"></i>
+                        <input type="text" id="userSearchInput" class="search-input" placeholder="Search users by name, email or phone...">
+                    </div>
+                    <div class="users-table-container">
+                        <table class="users-table">
+                            <tbody id="usersList"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Work Assign Section -->
+            <section id="workAssign" class="section">
+                <h2>Work Assignment</h2>
+                <div class="work-assign-container">
+                    <div class="user-selection">
+                        <div class="searchable-dropdown-container">
+                            <select id="selectUser" class="searchable-dropdown">
+                                <option value="">Select User</option>
+                                <!-- Options will be populated by JavaScript -->
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="work-type-selection">
+                        <select id="workType">
+                            <option value="students">Registered Students</option>
+                            <option value="sales">Sales Numbers</option>
+                        </select>
+                    </div>
+
+                    <div class="data-entry">
+                        <div class="format-info">Format: Name: phoneNo</div>
+                        <div class="input-group">
+                            <input type="text" id="contactName" placeholder="Name">
+                            <input type="tel" id="contactPhone" placeholder="Phone Number">
+                            <button id="addSingleContact" class="action-btn">Add Single Contact</button>
+                        </div>
+                        <div class="bulk-upload">
+                            <textarea id="bulkContacts" placeholder="Enter bulk contacts (one per line)"></textarea>
+                            <button id="addBulkContacts" class="action-btn">Add Bulk Contacts</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Work Progress Section -->
+            <section id="workProgress" class="section">
+                <h2>Work Progress</h2>
+                <div class="progress-filters">
+                    <div class="searchable-dropdown-container">
+                        <select id="progressUser" class="searchable-dropdown">
+                            <option value="">Select User</option>
+                            <!-- Options will be populated by JavaScript -->
+                        </select>
+                    </div>
+                    <select id="progressWorkType">
+                        <option value="students">Registered Students</option>
+                        <option value="sales">Sales Numbers</option>
+                    </select>
+                    <input type="date" id="activityDate" title="Select date to view activity">
+                </div>
+
+                <!-- Add Progress View Toggle -->
+                <div class="progress-view-toggle">
+                    <button class="progress-toggle-btn active" data-view="userProgress">User Progress</button>
+                    <button class="progress-toggle-btn" data-view="userActivity">User Activity</button>
+                </div>
+
+                <!-- Add Progress Sections Container -->
+                <div class="progress-sections">
+                    <!-- User Progress Section -->
+                    <div id="userProgressSection" class="progress-section active">
+                        <div class="progress-table">
+                            <table>
+                                <!-- <thead>
+                                    <tr>
+                                        <th>Contact Details</th>
+                                        <th>Actions</th>
+                                        <th>
+                                            <select id="statusHeaderFilter" class="status-header-filter">
+                                                <option value="">All Status</option>
+                                                <option value="notCalled">Not Called (0)</option>
+                                                <option value="answered">Answered (0)</option>
+                                                <option value="notAnswered">Not Answered (0)</option>
+                                                <option value="notInterested">Not Interested (0)</option>
+                                            </select>
+                                        </th>
+                                        <th>Notes</th>
+                                        <th>Last Updated</th>
+                                        <th>Manage</th>
+                                    </tr>
+                                </thead> -->
+                                <tbody id="progressData"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- User Activity Section -->
+                    <div id="userActivitySection" class="progress-section">
+                        <div class="activity-date-filters">
+                            <div class="period-selector">
+                                <button class="period-btn active" data-period="day">Day</button>
+                                <button class="period-btn" data-period="week">Week</button>
+                                <button class="period-btn" data-period="month">Month</button>
+                            </div>
+                            <div class="date-range">
+                                <div class="date-input-group">
+                                    <label>From:</label>
+                                    <input type="date" id="startDate" class="date-input">
+                                </div>
+                                <div class="date-input-group">
+                                    <label>To:</label>
+                                    <input type="date" id="endDate" class="date-input">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="activity-summary-cards">
+                            <div class="summary-card">
+                                <div class="card-title">Total Active Time</div>
+                                <div class="card-value" id="totalActiveTime">-</div>
+                            </div>
+                            <div class="summary-card">
+                                <div class="card-title">Average Daily Time</div>
+                                <div class="card-value" id="avgDailyTime">-</div>
+                            </div>
+                            <div class="summary-card">
+                                <div class="card-title">Total Sessions</div>
+                                <div class="card-value" id="totalSessions">-</div>
+                            </div>
+                            <div class="summary-card">
+                                <div class="card-title">Completion Rate</div>
+                                <div class="card-value" id="completionRate">-</div>
+                            </div>
+                        </div>
+
+                        <div id="userActivityInfo" class="user-activity-info">
+                            <div class="view-toggle">
+                                <button class="toggle-btn active" data-view="summary">Active Summary</button>
+                                <button class="toggle-btn" data-view="visits">Page Visit Log</button>
+                            </div>
+
+                            <div class="view-sections">
+                                <div id="activitySummary" class="view-section active">
+                                    <div class="log-table-container">
+                                        <table class="log-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>Time</th>
+                                                    <th>Type</th>
+                                                    <th>Duration</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="activityLog"></tbody>
+                                        </table>
+                                    </div>
+                                </div>
+
+                                <div id="pageVisitLog" class="view-section">
+                                    <div class="log-table-container">
+                                        <table class="log-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>Opened Time</th>
+                                                    <th>Closed Time</th>
+                                                    <th>Duration</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="visitsLog"></tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="activity-stats">
+                            <div class="stat-item">
+                                <label>Total Active Time:</label>
+                                <span id="totalTimeToday">-</span>
+                            </div>
+                            <div class="stat-item">
+                                <label>Page Opens:</label>
+                                <span id="pageOpens">-</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="progress" class="section">
+                <!-- The content will be dynamically inserted by setupProgressViews() -->
+            </section>
+        </main>
+    </div>
+
+    <script type="module" src="admin.js"></script>
+</body>
+</html>
