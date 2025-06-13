@@ -242,7 +242,8 @@ createAdminForm.addEventListener('submit', async (e) => {
             role: 'admin',
             hashedPassword: adminPassword.value, // Store password for future reference
             createdAt: serverTimestamp(),
-            createdBy: currentUser.uid  // Store the CEO ID who created this admin
+            createdBy: currentUser.uid,  // Store the CEO ID who created this admin
+            // Note: Admins don't have a createdBy field for user creation since they're created by CEO
         });
 
         // Delete the secondary app

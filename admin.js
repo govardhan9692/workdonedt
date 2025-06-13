@@ -327,6 +327,7 @@ createUserForm.addEventListener('submit', async (e) => {
             phone: userPhone.value,
             role: 'user',
             hashedPassword: userPassword.value, // Store password for future deletion
+            createdBy: currentUser.uid, // Add the admin who created this user
             createdAt: serverTimestamp()
         });
 
@@ -356,6 +357,19 @@ window.deleteUser = async (userId) => {
     }
 
     try {
+        // Verify that this admin created this user
+        const userDoc = await getDoc(doc(db, 'users', userId));
+        if (!userDoc.exists()) {
+            alert('User not found');
+            return;
+        }
+
+        const userData = userDoc.data();
+        if (userData.createdBy !== currentUser.uid) {
+            alert('You can only delete users that you created');
+            return;
+        }
+
         // Show loading state
         const deleteButton = document.querySelector(`tr[data-userid="${userId}"] .delete-user-btn`);
         if (deleteButton) {
@@ -1724,7 +1738,6 @@ function resetActivityDisplays() {
     if (elements.completionRate) elements.completionRate.textContent = '-';
 }
 
-
 // Update the styles for bulk actions
 const bulkActionsStyle = document.createElement('style');
 bulkActionsStyle.textContent = `
@@ -1978,7 +1991,6 @@ function renderSelectOptions(container, options, selectedValue) {
     });
 }
 
-
 // Add a debounce function if you don't already have one
 function debounce(func, wait) {
     let timeout;
@@ -1991,8 +2003,6 @@ function debounce(func, wait) {
         timeout = setTimeout(later, wait);
     };
 }
-
-// ...existing code...
 
 // Make sure to call initUserSearch and initSearchableSelects after the respective DOM elements are populated
 document.addEventListener('DOMContentLoaded', () => {
@@ -2024,12 +2034,15 @@ onAuthStateChanged(auth, async (user) => {
     }
 });
 
-// ...existing code...
-
-// Replace or update the loadUsers function
+// Replace the loadUsers function
 async function loadUsers() {
     try {
-        const q = query(collection(db, 'users'), where('role', '==', 'user'));
+        // Only load users created by the current admin
+        const q = query(
+            collection(db, 'users'), 
+            where('role', '==', 'user'),
+            where('createdBy', '==', currentUser.uid)
+        );
         const snapshot = await getDocs(q);
         const users = snapshot.docs.map(doc => ({
             id: doc.id,
@@ -2230,8 +2243,6 @@ onAuthStateChanged(auth, async (user) => {
     }
 });
 
-// ...existing code...
-
 // Add this function before loadExistingUsers
 function initCheckboxHandlers(type) {
     const selectAllCheckbox = document.getElementById(`selectAll${type.charAt(0).toUpperCase() + type.slice(1)}s`);
@@ -2294,8 +2305,24 @@ function updateDeleteButtonVisibility(type) {
 // Now the loadExistingUsers function will work correctly
 async function loadExistingUsers() {
     try {
-        const q = query(collection(db, 'users'), where('role', '==', 'user'));
+        // Only load users created by the current admin
+        const q = query(
+            collection(db, 'users'), 
+            where('role', '==', 'user'),
+            where('createdBy', '==', currentUser.uid)
+        );
         const snapshot = await getDocs(q);
+        
+        if (snapshot.docs.length === 0) {
+            usersList.innerHTML = `
+                <div class="no-users-message">
+                    <i class="fas fa-users"></i>
+                    <h3>No Users Created Yet</h3>
+                    <p>You haven't created any users yet. Use the form above to create your first user.</p>
+                </div>
+            `;
+            return;
+        }
         
         const html = `
             <div class="section-wrapper">

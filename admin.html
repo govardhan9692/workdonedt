@@ -47,6 +47,10 @@
             <!-- Create User Section -->
             <section id="createUser" class="section active">
                 <h2>Create User</h2>
+                <div class="admin-info-banner">
+                    <i class="fas fa-info-circle"></i>
+                    <span>You can only view and manage users that you create</span>
+                </div>
                 <form id="createUserForm">
                     <div class="form-group">
                         <label for="userName">Name:</label>
@@ -68,10 +72,10 @@
                 </form>
 
                 <div class="users-list">
-                    <h3>Existing Users</h3>
+                    <h3>Your Created Users</h3>
                     <div class="search-container">
                         <i class="fas fa-search search-icon"></i>
-                        <input type="text" id="userSearchInput" class="search-input" placeholder="Search users by name, email or phone...">
+                        <input type="text" id="userSearchInput" class="search-input" placeholder="Search your users by name, email or phone...">
                     </div>
                     <div class="users-table-container">
                         <table class="users-table">
