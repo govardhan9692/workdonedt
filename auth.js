@@ -46,18 +46,37 @@ if (publicPages.includes(currentPage)) {
             if (user) {
                 // User is signed in, check their role for page access
                 console.log('User is authenticated:', user.uid);
-                const userDoc = await getDoc(doc(db, 'users', user.uid));
+                
+                let userDoc = await getDoc(doc(db, 'users', user.uid));
+                
+                // If user is CEO but no document exists in Firestore, create it
+                if (!userDoc.exists() && user.email === CEO_EMAIL) {
+                    console.log('Creating CEO document in Firestore');
+                    await setDoc(doc(db, 'users', user.uid), {
+                        name: 'Govardhan Rajulapati',
+                        email: CEO_EMAIL,
+                        role: 'ceo',
+                        createdAt: serverTimestamp()
+                    });
+                    // Fetch the newly created document
+                    userDoc = await getDoc(doc(db, 'users', user.uid));
+                }
                 
                 if (userDoc.exists()) {
                     const userData = userDoc.data();
                     const userRole = userData.role;
                     
+                    // Get the required role for the current page
+                    const requiredRole = getRequiredRoleForPage(currentPage);
+                    console.log(`Page ${currentPage} requires role: ${requiredRole}, user has role: ${userRole}`);
+                    
                     // Check if user has access to this page based on role
-                    if ((currentPage === 'admin.html' && userRole !== 'admin') || 
-                        (currentPage === 'user.html' && userRole !== 'user') ||
-                        (currentPage === 'ceo.html' && userRole !== 'ceo')) {
-                        console.log('User does not have permission for this page');
-                        window.location.replace('index.html');
+                    if (requiredRole && userRole !== requiredRole) {
+                        // User doesn't have required role for this page
+                        console.log(`Access denied: Your role (${userRole}) doesn't have permission to access this page. Redirecting to appropriate dashboard.`);
+                        
+                        // Redirect to the appropriate dashboard based on user's role
+                        redirectToRoleDashboard(userRole);
                     } else {
                         console.log('Auth check successful, user has access');
                         // Remove loading state
@@ -80,64 +99,36 @@ if (publicPages.includes(currentPage)) {
     });
 }
 
+// Helper function to determine required role for each page
+function getRequiredRoleForPage(page) {
+    switch (page) {
+        case 'admin.html':
+            return 'admin';
+        case 'user.html':
+            return 'user';
+        case 'ceo.html':
+            return 'ceo';
+        default:
+            return null; // No specific role requirement
+    }
+}
 
-try {
-    // Attempt to sign in the CEO automatically
-    signInWithEmailAndPassword(auth, CEO_EMAIL, CEO_PASSWORD)
-        .then((userCredential) => {
-            // CEO signed in successfully
-            const user = userCredential.user;
-            console.log("CEO signed in:", user.uid);
-            
-            // Check if CEO document exists in Firestore
-            getDoc(doc(db, 'users', user.uid)).then((userDoc) => {
-                if (!userDoc.exists()) {
-                    // If not, create the CEO document
-                    console.log("CEO document not found, creating one...");
-                    setDoc(doc(db, 'users', user.uid), {
-                        name: 'Govardhan Rajulapati',
-                        email: CEO_EMAIL,
-                        role: 'ceo',
-                        createdAt: serverTimestamp()
-                    }).then(() => {
-                        console.log("CEO document created successfully");
-                    }).catch((error) => {
-                        console.error("Error creating CEO document:", error);
-                    });
-                }
-            }).catch((error) => {
-                console.error("Error checking CEO document:", error);
-            });
-        })
-        .catch((error) => {
-            // If sign-in fails, the account doesn't exist
-            if (error.code === 'auth/user-not-found') {
-                console.log("CEO account does not exist, creating it...");
-                
-                // Create CEO account
-                createUserWithEmailAndPassword(auth, CEO_EMAIL, CEO_PASSWORD)
-                    .then((userCredential) => {
-                        // Account created, now add CEO details in Firestore
-                        setDoc(doc(db, 'users', userCredential.user.uid), {
-                            name: 'Govardhan Rajulapati',
-                            email: CEO_EMAIL,
-                            role: 'ceo',
-                            createdAt: serverTimestamp()
-                        }).then(() => {
-                            console.log("CEO account and document created successfully");
-                        }).catch((error) => {
-                            console.error("Error adding CEO details to Firestore:", error);
-                        });
-                    })
-                    .catch((error) => {
-                        console.error("Error creating CEO account:", error);
-                    });
-            } else {
-                console.error("Error signing in CEO:", error);
-            }
-        });
-} catch (error) {
-    console.error("Error in CEO auto-signin:", error);
+// Helper function to redirect user to appropriate dashboard
+function redirectToRoleDashboard(role) {
+    switch (role) {
+        case 'admin':
+            window.location.replace('admin.html');
+            break;
+        case 'user':
+            window.location.replace('user.html');
+            break;
+        case 'ceo':
+            window.location.replace('ceo.html');
+            break;
+        default:
+            // Default to login page if role is unknown or deleted
+            window.location.replace('index.html');
+    }
 }
 
 // Add loading styles
@@ -157,6 +148,21 @@ style.textContent = `
         align-items: center;
         justify-content: center;
         z-index: 9999;
+    }
+    .loader {
+        border: 5px solid #f3f3f3;
+        border-top: 5px solid #3498db;
+        border-radius: 50%;
+        width: 50px;
+        height: 50px;
+        animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+`;
+document.head.appendChild(style);
     }
     .loader {
         border: 5px solid #f3f3f3;

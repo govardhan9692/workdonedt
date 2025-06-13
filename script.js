@@ -86,12 +86,38 @@ loginForm.addEventListener('submit', async (e) => {
             return;
         }
         
+        // Check if the selected role matches the user's actual role
         if (userData.role !== selectedRole) {
             console.error('Role mismatch:', userData.role, selectedRole);
-            await signOut(auth);
-            showError(`Please select the correct role. You are a ${userData.role}.`);
-            resetLoginButton();
-            return;
+            
+            // Instead of immediately showing error, automatically select the correct role
+            const correctRoleBtn = document.querySelector(`.role-btn[data-role="${userData.role}"]`);
+            if (correctRoleBtn) {
+                // Switch to the correct role automatically
+                document.querySelectorAll('.role-btn').forEach(btn => btn.classList.remove('active'));
+                correctRoleBtn.classList.add('active');
+                
+                showMessage(`Switching to ${userData.role} role for you. Please wait...`, 'info');
+                
+                // Short delay to show the message before continuing
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
+                // Continue with the correct role
+                localStorage.setItem('authUser', JSON.stringify({
+                    uid: userCredential.user.uid,
+                    role: userData.role,
+                    timestamp: Date.now()
+                }));
+                
+                // Redirect based on role
+                window.location.replace(userData.role === 'admin' ? 'admin.html' : 'user.html');
+                return;
+            } else {
+                await signOut(auth);
+                showError(`Please select the correct role. You are a ${userData.role}.`);
+                resetLoginButton();
+                return;
+            }
         }
 
         // Store auth state in localStorage
@@ -173,44 +199,61 @@ onAuthStateChanged(auth, async (user) => {
     }
 });
 
-// Helper functions for error handling
-function showError(message) {
-    // Check if error element exists, if not create it
-    let errorElement = document.querySelector('.login-error');
+// Add this helper function to show informational messages
+function showMessage(message, type = 'info') {
+    // Check if message element exists, if not create it
+    let messageElement = document.querySelector('.login-message');
     
-    if (!errorElement) {
-        errorElement = document.createElement('div');
-        errorElement.className = 'login-error';
+    if (!messageElement) {
+        messageElement = document.createElement('div');
+        messageElement.className = `login-message ${type}`;
         
         const form = document.getElementById('loginForm');
-        form.parentNode.insertBefore(errorElement, form.nextSibling);
+        form.parentNode.insertBefore(messageElement, form.nextSibling);
         
-        // Add error styles
-        const style = document.createElement('style');
-        style.textContent = `
-            .login-error {
-                background-color: rgba(220, 53, 69, 0.1);
-                color: #dc3545;
-                padding: 12px;
-                border-radius: 6px;
-                margin: 15px 0;
-                text-align: center;
-                font-weight: 500;
-                border-left: 4px solid #dc3545;
-                animation: fadeIn 0.3s ease;
-            }
-            @keyframes fadeIn {
-                from { opacity: 0; transform: translateY(-10px); }
-                to { opacity: 1; transform: translateY(0); }
-            }
-        `;
-        document.head.appendChild(style);
+        // Add message styles if not already present
+        if (!document.querySelector('#message-styles')) {
+            const style = document.createElement('style');
+            style.id = 'message-styles';
+            style.textContent = `
+                .login-message {
+                    padding: 12px;
+                    border-radius: 6px;
+                    margin: 15px 0;
+                    text-align: center;
+                    font-weight: 500;
+                    animation: fadeIn 0.3s ease;
+                }
+                .login-message.info {
+                    background-color: rgba(33, 150, 243, 0.1);
+                    color: #2196f3;
+                    border-left: 4px solid #2196f3;
+                }
+                .login-message.error {
+                    background-color: rgba(220, 53, 69, 0.1);
+                    color: #dc3545;
+                    border-left: 4px solid #dc3545;
+                }
+                @keyframes fadeIn {
+                    from { opacity: 0; transform: translateY(-10px); }
+                    to { opacity: 1; transform: translateY(0); }
+                }
+            `;
+            document.head.appendChild(style);
+        }
     }
     
-    errorElement.textContent = message;
-    errorElement.style.display = 'block';
+    messageElement.textContent = message;
+    messageElement.className = `login-message ${type}`;
+    messageElement.style.display = 'block';
 }
 
+// Update the existing showError function to use our new message system
+function showError(message) {
+    showMessage(message, 'error');
+}
+
+// Helper functions for error handling
 function resetLoginButton() {
     const loginBtn = document.querySelector('.login-btn');
     if (loginBtn) {
