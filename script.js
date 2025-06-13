@@ -47,7 +47,7 @@ togglePassword.addEventListener('click', () => {
     }
 });
 
-// Update the login form submission with better error handling and redirection
+// Update the login form submission with CEO role handling
 loginForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     
@@ -88,7 +88,13 @@ loginForm.addEventListener('submit', async (e) => {
         }));
 
         // Redirect based on role using replace
-        const redirectTo = userData.role === 'admin' ? 'admin.html' : 'user.html';
+        let redirectTo = 'user.html';
+        if (userData.role === 'admin') {
+            redirectTo = 'admin.html';
+        } else if (userData.role === 'ceo') {
+            redirectTo = 'ceo.html';
+        }
+        
         window.location.replace(redirectTo);
 
     } catch (error) {
@@ -104,7 +110,7 @@ loginForm.addEventListener('submit', async (e) => {
     }
 });
 
-// Update auth state observer to handle stored auth state
+// Update auth state observer to handle stored auth state and CEO role
 onAuthStateChanged(auth, async (user) => {
     // Don't redirect if we're in the process of logging in
     if (isLoggingIn) return;
@@ -119,12 +125,17 @@ onAuthStateChanged(auth, async (user) => {
             
             // Verify stored auth is still valid (within 24 hours)
             const isValidSession = storedAuth.timestamp && 
-                                 (Date.now() - storedAuth.timestamp) < 24 * 60 * 60 * 1000;
+                               (Date.now() - storedAuth.timestamp) < 24 * 60 * 60 * 1000;
 
             if (storedAuth.uid === user.uid && isValidSession) {
                 if (isLoginPage) {
                     // Only redirect if we're on the login page
-                    const redirectTo = storedAuth.role === 'admin' ? 'admin.html' : 'user.html';
+                    let redirectTo = 'user.html';
+                    if (storedAuth.role === 'admin') {
+                        redirectTo = 'admin.html';
+                    } else if (storedAuth.role === 'ceo') {
+                        redirectTo = 'ceo.html';
+                    }
                     window.location.replace(redirectTo);
                 }
             } else {
