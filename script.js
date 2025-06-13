@@ -21,6 +21,7 @@ const db = getFirestore(app);
 const roleButtons = document.querySelectorAll('.role-btn');
 const loginForm = document.getElementById('loginForm');
 const togglePassword = document.querySelector('.toggle-password');
+const loginBtn = document.querySelector('.login-btn');
 let selectedRole = 'user'; // Default role
 
 // Add this flag to prevent redirect loops
@@ -53,6 +54,10 @@ if (togglePassword) {
 loginForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     
+    // Show loading state immediately with overlay
+    setLoginButtonLoading(true);
+    showPageLoading('Authenticating...', 0);
+    
     const email = document.getElementById('email').value;
     const password = document.getElementById('password').value;
     const selectedRole = document.querySelector('.role-btn.active').dataset.role;
@@ -61,8 +66,14 @@ loginForm.addEventListener('submit', async (e) => {
         // Set logging in flag
         isLoggingIn = true;
 
+        // Update progress
+        showPageLoading('Verifying credentials...', 25);
+
         // First try to sign in
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        
+        // Update progress
+        showPageLoading('Loading user data...', 50);
         
         // Then verify role
         const userDoc = await getDoc(doc(db, 'users', userCredential.user.uid));
@@ -70,19 +81,24 @@ loginForm.addEventListener('submit', async (e) => {
         if (!userDoc.exists()) {
             console.error('User document not found');
             await signOut(auth);
+            hidePageLoading();
             showError('User data not found. Please contact administrator.');
-            resetLoginButton();
+            setLoginButtonLoading(false);
             return;
         }
 
         const userData = userDoc.data();
         
+        // Update progress
+        showPageLoading('Validating permissions...', 75);
+        
         // Check if user is attempting to login as CEO through regular login
         if (userData.role === 'ceo') {
             console.error('CEO attempting regular login');
             await signOut(auth);
+            hidePageLoading();
             showError('Please use CEO login page for CEO access.');
-            resetLoginButton();
+            setLoginButtonLoading(false);
             return;
         }
         
@@ -97,7 +113,7 @@ loginForm.addEventListener('submit', async (e) => {
                 document.querySelectorAll('.role-btn').forEach(btn => btn.classList.remove('active'));
                 correctRoleBtn.classList.add('active');
                 
-                showMessage(`Switching to ${userData.role} role for you. Please wait...`, 'info');
+                showPageLoading(`Switching to ${userData.role} role...`, 85);
                 
                 // Short delay to show the message before continuing
                 await new Promise(resolve => setTimeout(resolve, 1000));
@@ -109,13 +125,19 @@ loginForm.addEventListener('submit', async (e) => {
                     timestamp: Date.now()
                 }));
                 
-                // Redirect based on role
-                window.location.replace(userData.role === 'admin' ? 'admin.html' : 'user.html');
+                // Final loading step
+                showPageLoading('Redirecting to dashboard...', 100);
+                
+                // Keep loading active during redirect - don't hide it
+                setTimeout(() => {
+                    window.location.replace(userData.role === 'admin' ? 'admin.html' : 'user.html');
+                }, 1000);
                 return;
             } else {
                 await signOut(auth);
+                hidePageLoading();
                 showError(`Please select the correct role. You are a ${userData.role}.`);
-                resetLoginButton();
+                setLoginButtonLoading(false);
                 return;
             }
         }
@@ -127,17 +149,25 @@ loginForm.addEventListener('submit', async (e) => {
             timestamp: Date.now() // Add timestamp for session tracking
         }));
 
+        // Final loading step
+        showPageLoading('Redirecting to dashboard...', 100);
+
         // Redirect based on role using replace
         let redirectTo = 'user.html';
         if (userData.role === 'admin') {
             redirectTo = 'admin.html';
         }
         
-        window.location.replace(redirectTo);
+        // Keep loading state active during redirect - don't hide it
+        setTimeout(() => {
+            window.location.replace(redirectTo);
+        }, 1000);
 
     } catch (error) {
         console.error('Login error:', error);
         isLoggingIn = false; // Reset flag on error
+        hidePageLoading();
+        
         if (error.code === 'auth/wrong-password') {
             showError('Invalid password');
         } else if (error.code === 'auth/user-not-found') {
@@ -145,9 +175,175 @@ loginForm.addEventListener('submit', async (e) => {
         } else {
             showError('Login failed: ' + error.message);
         }
-        resetLoginButton();
+        setLoginButtonLoading(false);
     }
 });
+
+// Enhanced loading state function
+function setLoginButtonLoading(isLoading) {
+    if (isLoading) {
+        loginBtn.classList.add('loading');
+        loginBtn.disabled = true;
+    } else {
+        loginBtn.classList.remove('loading');
+        loginBtn.disabled = false;
+    }
+}
+
+// New functions for page loading overlay
+function showPageLoading(message, progress = 0) {
+    let overlay = document.getElementById('page-loading-overlay');
+    
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'page-loading-overlay';
+        overlay.innerHTML = `
+            <div class="loading-content">
+                <div class="loading-spinner">
+                    <div class="spinner-ring"></div>
+                    <div class="spinner-ring"></div>
+                    <div class="spinner-ring"></div>
+                </div>
+                <div class="loading-text">Loading...</div>
+                <div class="progress-container">
+                    <div class="progress-bar">
+                        <div class="progress-fill"></div>
+                    </div>
+                    <div class="progress-text">0%</div>
+                </div>
+            </div>
+        `;
+        
+        // Add styles
+        const style = document.createElement('style');
+        style.textContent = `
+            #page-loading-overlay {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.8);
+                backdrop-filter: blur(10px);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 10000;
+                animation: fadeIn 0.3s ease;
+            }
+            
+            .loading-content {
+                text-align: center;
+                color: white;
+                padding: 2rem;
+                border-radius: 16px;
+                background: rgba(255, 255, 255, 0.1);
+                border: 1px solid rgba(255, 255, 255, 0.2);
+                box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+                min-width: 300px;
+            }
+            
+            .loading-spinner {
+                position: relative;
+                width: 60px;
+                height: 60px;
+                margin: 0 auto 1.5rem;
+            }
+            
+            .spinner-ring {
+                position: absolute;
+                width: 100%;
+                height: 100%;
+                border: 3px solid transparent;
+                border-top: 3px solid var(--primary-color, #4a6aed);
+                border-radius: 50%;
+                animation: spin 1.2s linear infinite;
+            }
+            
+            .spinner-ring:nth-child(2) {
+                width: 80%;
+                height: 80%;
+                top: 10%;
+                left: 10%;
+                border-top-color: var(--accent-color, #e6b54a);
+                animation-duration: 1.8s;
+                animation-direction: reverse;
+            }
+            
+            .spinner-ring:nth-child(3) {
+                width: 60%;
+                height: 60%;
+                top: 20%;
+                left: 20%;
+                border-top-color: var(--secondary-color, #6039bb);
+                animation-duration: 0.8s;
+            }
+            
+            @keyframes spin {
+                to { transform: rotate(360deg); }
+            }
+            
+            .loading-text {
+                font-size: 1.1rem;
+                font-weight: 500;
+                margin-bottom: 1.5rem;
+                animation: pulse 2s infinite;
+            }
+            
+            @keyframes pulse {
+                0%, 100% { opacity: 1; }
+                50% { opacity: 0.7; }
+            }
+            
+            .progress-container {
+                margin-top: 1rem;
+            }
+            
+            .progress-bar {
+                width: 100%;
+                height: 6px;
+                background: rgba(255, 255, 255, 0.2);
+                border-radius: 3px;
+                overflow: hidden;
+                margin-bottom: 0.5rem;
+            }
+            
+            .progress-fill {
+                height: 100%;
+                background: linear-gradient(90deg, var(--primary-color, #4a6aed), var(--accent-color, #e6b54a));
+                border-radius: 3px;
+                transition: width 0.5s ease;
+                width: 0%;
+            }
+            
+            .progress-text {
+                font-size: 0.9rem;
+                opacity: 0.8;
+            }
+        `;
+        document.head.appendChild(style);
+        document.body.appendChild(overlay);
+    }
+    
+    // Update message and progress
+    const loadingText = overlay.querySelector('.loading-text');
+    const progressFill = overlay.querySelector('.progress-fill');
+    const progressText = overlay.querySelector('.progress-text');
+    
+    if (loadingText) loadingText.textContent = message;
+    if (progressFill) progressFill.style.width = progress + '%';
+    if (progressText) progressText.textContent = Math.round(progress) + '%';
+}
+
+function hidePageLoading() {
+    const overlay = document.getElementById('page-loading-overlay');
+    if (overlay) {
+        overlay.style.animation = 'fadeOut 0.3s ease';
+        setTimeout(() => {
+            overlay.remove();
+        }, 300);
+    }
+}
 
 // Auth state observer
 onAuthStateChanged(auth, async (user) => {
@@ -168,14 +364,20 @@ onAuthStateChanged(auth, async (user) => {
 
             if (storedAuth.uid === user.uid && isValidSession) {
                 if (isLoginPage) {
-                    // Only redirect if we're on the login page
+                    // Show loading for auto-redirect
+                    showPageLoading('Welcome back! Redirecting...', 100);
+                    
                     let redirectTo = 'user.html';
                     if (storedAuth.role === 'admin') {
                         redirectTo = 'admin.html';
                     } else if (storedAuth.role === 'ceo') {
                         redirectTo = 'ceo.html';
                     }
-                    window.location.replace(redirectTo);
+                    
+                    // Keep loading active during redirect
+                    setTimeout(() => {
+                        window.location.replace(redirectTo);
+                    }, 1000);
                 }
             } else {
                 // Clear invalid auth data
@@ -255,8 +457,5 @@ function showError(message) {
 
 // Helper functions for error handling
 function resetLoginButton() {
-    const loginBtn = document.querySelector('.login-btn');
-    if (loginBtn) {
-        loginBtn.classList.remove('loading');
-    }
+    setLoginButtonLoading(false);
 }
