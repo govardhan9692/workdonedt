@@ -21,7 +21,7 @@ const db = getFirestore(app);
 const roleButtons = document.querySelectorAll('.role-btn');
 const loginForm = document.getElementById('loginForm');
 const togglePassword = document.querySelector('.toggle-password');
-let selectedRole = 'admin'; // Default role
+let selectedRole = 'user'; // Default role
 
 // Add this flag to prevent redirect loops
 let isLoggingIn = false;
@@ -36,18 +36,20 @@ roleButtons.forEach(button => {
 });
 
 // Toggle password visibility
-togglePassword.addEventListener('click', () => {
-    const passwordInput = document.getElementById('password');
-    if (passwordInput.type === 'password') {
-        passwordInput.type = 'text';
-        togglePassword.innerHTML = '<i class="fas fa-eye-slash"></i>';
-    } else {
-        passwordInput.type = 'password';
-        togglePassword.innerHTML = '<i class="fas fa-eye"></i>';
-    }
-});
+if (togglePassword) {
+    togglePassword.addEventListener('click', () => {
+        const passwordInput = document.getElementById('password');
+        if (passwordInput.type === 'password') {
+            passwordInput.type = 'text';
+            togglePassword.innerHTML = '<i class="fas fa-eye-slash"></i>';
+        } else {
+            passwordInput.type = 'password';
+            togglePassword.innerHTML = '<i class="fas fa-eye"></i>';
+        }
+    });
+}
 
-// Update the login form submission with CEO role handling
+// Login form submission handler
 loginForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     
@@ -68,15 +70,27 @@ loginForm.addEventListener('submit', async (e) => {
         if (!userDoc.exists()) {
             console.error('User document not found');
             await signOut(auth);
-            alert('User data not found. Please contact administrator.');
+            showError('User data not found. Please contact administrator.');
+            resetLoginButton();
             return;
         }
 
         const userData = userDoc.data();
+        
+        // Check if user is attempting to login as CEO through regular login
+        if (userData.role === 'ceo') {
+            console.error('CEO attempting regular login');
+            await signOut(auth);
+            showError('Please use CEO login page for CEO access.');
+            resetLoginButton();
+            return;
+        }
+        
         if (userData.role !== selectedRole) {
             console.error('Role mismatch:', userData.role, selectedRole);
             await signOut(auth);
-            alert(`Please select the correct role. You are a ${userData.role}.`);
+            showError(`Please select the correct role. You are a ${userData.role}.`);
+            resetLoginButton();
             return;
         }
 
@@ -91,8 +105,6 @@ loginForm.addEventListener('submit', async (e) => {
         let redirectTo = 'user.html';
         if (userData.role === 'admin') {
             redirectTo = 'admin.html';
-        } else if (userData.role === 'ceo') {
-            redirectTo = 'ceo.html';
         }
         
         window.location.replace(redirectTo);
@@ -101,16 +113,17 @@ loginForm.addEventListener('submit', async (e) => {
         console.error('Login error:', error);
         isLoggingIn = false; // Reset flag on error
         if (error.code === 'auth/wrong-password') {
-            alert('Invalid password');
+            showError('Invalid password');
         } else if (error.code === 'auth/user-not-found') {
-            alert('User not found');
+            showError('User not found');
         } else {
-            alert('Login failed: ' + error.message);
+            showError('Login failed: ' + error.message);
         }
+        resetLoginButton();
     }
 });
 
-// Update auth state observer to handle stored auth state and CEO role
+// Auth state observer
 onAuthStateChanged(auth, async (user) => {
     // Don't redirect if we're in the process of logging in
     if (isLoggingIn) return;
@@ -159,3 +172,48 @@ onAuthStateChanged(auth, async (user) => {
         window.location.replace('index.html');
     }
 });
+
+// Helper functions for error handling
+function showError(message) {
+    // Check if error element exists, if not create it
+    let errorElement = document.querySelector('.login-error');
+    
+    if (!errorElement) {
+        errorElement = document.createElement('div');
+        errorElement.className = 'login-error';
+        
+        const form = document.getElementById('loginForm');
+        form.parentNode.insertBefore(errorElement, form.nextSibling);
+        
+        // Add error styles
+        const style = document.createElement('style');
+        style.textContent = `
+            .login-error {
+                background-color: rgba(220, 53, 69, 0.1);
+                color: #dc3545;
+                padding: 12px;
+                border-radius: 6px;
+                margin: 15px 0;
+                text-align: center;
+                font-weight: 500;
+                border-left: 4px solid #dc3545;
+                animation: fadeIn 0.3s ease;
+            }
+            @keyframes fadeIn {
+                from { opacity: 0; transform: translateY(-10px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+    
+    errorElement.textContent = message;
+    errorElement.style.display = 'block';
+}
+
+function resetLoginButton() {
+    const loginBtn = document.querySelector('.login-btn');
+    if (loginBtn) {
+        loginBtn.classList.remove('loading');
+    }
+}

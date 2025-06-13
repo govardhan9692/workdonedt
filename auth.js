@@ -17,25 +17,19 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-// CEO credentials
-const CEO_EMAIL = "GovardhanRajulapati@dreamteam.com";
+// CEO credentials - updated to match the new login credentials
+const CEO_EMAIL = "GovardhanRajulapati9692@gmail.com";
 const CEO_PASSWORD = "GovardhanRajulapati@9692#4482";
 
 // Get current page information
 const currentPage = window.location.pathname.split('/').pop();
 console.log('Current page:', currentPage);
 
-// Skip auth check for login page or explicitly public pages
-const publicPages = ['index.html', 'register.html', 'reset-password.html'];
+// Skip auth check for login pages or explicitly public pages
+const publicPages = ['index.html', 'ceologin.html', 'register.html', 'reset-password.html'];
 if (publicPages.includes(currentPage)) {
     // No need to check auth on public pages
     console.log('On public page, skipping auth check');
-    
-    // Add CEO auto-creation check for login page
-    if (currentPage === 'index.html') {
-        // Check if the CEO account exists and create it if needed
-        checkAndCreateCEOAccount();
-    }
 } else {
     // Show loading state while checking auth
     document.body.classList.add('auth-loading');
@@ -86,75 +80,64 @@ if (publicPages.includes(currentPage)) {
     });
 }
 
-// Function to check if CEO account exists and create it if needed
-async function checkAndCreateCEOAccount() {
-    try {
-        // We'll look for a user with CEO role in the users collection
-        // This is a safe approach as we don't expose any auth methods
-        const loginForm = document.querySelector('form');
-        
-        if (loginForm) {
-            // Add event listener to the form
-            loginForm.addEventListener('submit', async function(e) {
-                const emailInput = document.querySelector('input[type="email"]');
-                const passwordInput = document.querySelector('input[type="password"]');
-                
-                if (emailInput && passwordInput && 
-                    emailInput.value === CEO_EMAIL && 
-                    passwordInput.value === CEO_PASSWORD) {
-                    
-                    console.log("CEO credentials detected, checking if account exists...");
-                    // We're not preventing default here to let the normal login process continue
-                    // But we'll check if we need to create the CEO account
-                    
-                    try {
-                        // Try to sign in with CEO credentials to see if account exists
-                        await signInWithEmailAndPassword(auth, CEO_EMAIL, CEO_PASSWORD)
-                            .then(async (userCredential) => {
-                                const user = userCredential.user;
-                                // Check if user has CEO role in database
-                                const userDoc = await getDoc(doc(db, 'users', user.uid));
-                                
-                                if (!userDoc.exists()) {
-                                    // User exists in Auth but not in Firestore, create the CEO document
-                                    await setDoc(doc(db, 'users', user.uid), {
-                                        name: 'Govardhan Rajulapati',
-                                        email: CEO_EMAIL,
-                                        role: 'ceo',
-                                        createdAt: serverTimestamp()
-                                    });
-                                    console.log("CEO account created in database");
-                                }
-                            })
-                            .catch(async (error) => {
-                                // If sign-in fails, the account doesn't exist
-                                if (error.code === 'auth/user-not-found') {
-                                    console.log("CEO account does not exist, creating it...");
-                                    
-                                    // Create CEO account
-                                    const userCredential = await createUserWithEmailAndPassword(auth, CEO_EMAIL, CEO_PASSWORD);
-                                    
-                                    // Add CEO details in Firestore
-                                    await setDoc(doc(db, 'users', userCredential.user.uid), {
-                                        name: 'Govardhan Rajulapati',
-                                        email: CEO_EMAIL,
-                                        role: 'ceo',
-                                        createdAt: serverTimestamp()
-                                    });
-                                    
-                                    console.log("CEO account created successfully");
-                                    // The form submission will continue and log the CEO in
-                                }
-                            });
-                    } catch (error) {
-                        console.error("Error checking/creating CEO account:", error);
-                    }
+
+try {
+    // Attempt to sign in the CEO automatically
+    signInWithEmailAndPassword(auth, CEO_EMAIL, CEO_PASSWORD)
+        .then((userCredential) => {
+            // CEO signed in successfully
+            const user = userCredential.user;
+            console.log("CEO signed in:", user.uid);
+            
+            // Check if CEO document exists in Firestore
+            getDoc(doc(db, 'users', user.uid)).then((userDoc) => {
+                if (!userDoc.exists()) {
+                    // If not, create the CEO document
+                    console.log("CEO document not found, creating one...");
+                    setDoc(doc(db, 'users', user.uid), {
+                        name: 'Govardhan Rajulapati',
+                        email: CEO_EMAIL,
+                        role: 'ceo',
+                        createdAt: serverTimestamp()
+                    }).then(() => {
+                        console.log("CEO document created successfully");
+                    }).catch((error) => {
+                        console.error("Error creating CEO document:", error);
+                    });
                 }
+            }).catch((error) => {
+                console.error("Error checking CEO document:", error);
             });
-        }
-    } catch (error) {
-        console.error("Error in CEO account setup:", error);
-    }
+        })
+        .catch((error) => {
+            // If sign-in fails, the account doesn't exist
+            if (error.code === 'auth/user-not-found') {
+                console.log("CEO account does not exist, creating it...");
+                
+                // Create CEO account
+                createUserWithEmailAndPassword(auth, CEO_EMAIL, CEO_PASSWORD)
+                    .then((userCredential) => {
+                        // Account created, now add CEO details in Firestore
+                        setDoc(doc(db, 'users', userCredential.user.uid), {
+                            name: 'Govardhan Rajulapati',
+                            email: CEO_EMAIL,
+                            role: 'ceo',
+                            createdAt: serverTimestamp()
+                        }).then(() => {
+                            console.log("CEO account and document created successfully");
+                        }).catch((error) => {
+                            console.error("Error adding CEO details to Firestore:", error);
+                        });
+                    })
+                    .catch((error) => {
+                        console.error("Error creating CEO account:", error);
+                    });
+            } else {
+                console.error("Error signing in CEO:", error);
+            }
+        });
+} catch (error) {
+    console.error("Error in CEO auto-signin:", error);
 }
 
 // Add loading styles

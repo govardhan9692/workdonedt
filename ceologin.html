@@ -3,10 +3,43 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login | Work Done</title>
+    <title>CEO Login | Work Done</title>
     <link rel="stylesheet" href="login.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
+        /* CEO-specific styles */
+        :root {
+            --primary-color: #1e3a8a;
+            --primary-dark: #091c4a;
+            --accent-color: #c9a73b;
+        }
+        
+        .ceo-badge {
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+            color: white;
+            position: absolute;
+            top: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-weight: 600;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.15);
+            border: 2px solid var(--accent-color);
+            letter-spacing: 1px;
+        }
+        
+        .login-btn {
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+        }
+        
+        .login-header h1 {
+            background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
         /* Loading button styles */
         .login-btn.loading {
             position: relative;
@@ -31,41 +64,20 @@
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
-
-        .ceo-login-link {
-            margin-top: 20px;
-            text-align: center;
-            font-size: 0.9rem;
-        }
-        
-        .ceo-login-link a {
-            color: var(--primary-color);
-            text-decoration: none;
-            font-weight: 500;
-            transition: color 0.2s ease;
-        }
-        
-        .ceo-login-link a:hover {
-            color: var(--accent-color);
-            text-decoration: underline;
-        }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="login-wrapper">
             <div class="login-container">
-                <div class="login-header">
-                    <h1>Welcome to Work Done</h1>
-                    <p class="subtitle">"Complete your Work Instantly"</p>
-                </div>
+                <span class="ceo-badge">CEO ACCESS</span>
                 
-                <div class="role-selector">
-                    <button class="role-btn" data-role="admin">Admin</button>
-                    <button class="role-btn active" data-role="user">User</button>
+                <div class="login-header">
+                    <h1>Executive Dashboard</h1>
+                    <p class="subtitle">"Management & Oversight"</p>
                 </div>
 
-                <form id="loginForm" class="login-form">
+                <form id="ceoLoginForm" class="login-form">
                     <div class="form-group">
                         <label for="email">
                             <i class="fas fa-envelope"></i>
@@ -93,22 +105,15 @@
                     </button>
                 </form>
                 
-                <div class="ceo-login-link">
-                    <p><a href="ceologin.html">CEO Login</a></p>
+                <div class="login-footer">
+                    <p>Restricted access for executive management only</p>
                 </div>
             </div>
         </div>
     </div>
     
-    <script type="module" src="script.js"></script>
+    <script type="module" src="ceologin.js"></script>
     <script>
-        // Add loading animation to login button
-        document.getElementById('loginForm').addEventListener('submit', function(e) {
-            const loginBtn = document.querySelector('.login-btn');
-            loginBtn.classList.add('loading');
-            // Form will continue submitting normally
-        });
-        
         // Add toggle password visibility
         document.querySelector('.toggle-password').addEventListener('click', function() {
             const passwordInput = document.getElementById('password');
@@ -123,6 +128,12 @@
                 icon.classList.remove('fa-eye-slash');
                 icon.classList.add('fa-eye');
             }
+        });
+        
+        // Add loading animation to login button
+        document.getElementById('ceoLoginForm').addEventListener('submit', function() {
+            const loginBtn = document.querySelector('.login-btn');
+            loginBtn.classList.add('loading');
         });
     </script>
 </body>
