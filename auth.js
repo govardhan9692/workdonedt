@@ -177,4 +177,6 @@ document.head.appendChild(style);
         100% { transform: rotate(360deg); }
     }
 `;
+
+
 document.head.appendChild(style);
